@@ -2,10 +2,6 @@ from heapq import merge
 from turtle import title
 import netmiko as nk
 import time
-
-import DBconnection
-import mysql.connector
-
 import numpy as np
 # from numpy.linalg.norm import norma
 from numpy.lib.type_check import real
@@ -13,72 +9,86 @@ import math
 from sympy import var, solve
 from datetime import datetime
 import os 
-
-from mysql.connector import MySQLConnection, Error #revisar utilidad
-DBconnection.configuration() ##checkout configuration
+import mysql.connector
+from mysql.connector import MySQLConnection, Error
 
 #----------------------------------------------------------#
-#no necesario obtiene de DB
-# Ap_credentials = {
-#     'ip': "", 
-#     'device_type': "autodetect",
-#     'username': "root",
-#     'password': "root"}
-
-# verifica_Clientes_Conectados= lambda c_Conectados,ap_nombre : "No hay dispositivos conectados"+ap_nombre if c_Conectados[0]=='No' else "Los siguientes dispositivos se encuentran conectados en la red: " +ap_nombre +' '+ str(c_Conectados) 
-
-#lectura archivo
-dispositivos = []
-fichero = open("values.txt")
-lines = fichero.readlines()
-for l in lines:
-    dispositivos.append(l[0]) #revisar estructura archivo
+# dispositivos = []
+# fichero = open("values.txt")
+# lines = fichero.readlines()
+# for l in lines:
+#     dispositivos.append(l[0]) #revisar estructura archivo
 
 #-------------------------------------------------#
 
+#Connection to DB
+config = {
+        'user':'root',
+        'password':'h8bmbfar',
+        'host':'200.10.150.149',
+        'database':'wificrowdspy'
+}
+
+values = [] # almacena macs per query
+
 try:
-      dbconfig = DBconnection.configuration()
+      dbconfig = config
       conn = MySQLConnection(**dbconfig)
       cursor = conn.cursor()
-      cursor.execute("SELECT * FROM info_horst;")
+      cursor.execute("SELECT id_router,fecha,hora,mac,rssi FROM info_horst ORDER BY hora des;") #check query
+      values.append(cursor.fetchmany())
+
+      #posicion 
+      cursor.execute("SELECT * from info_router")
+      cursor.fetchall() #--> value per router 
+
+      #consultar o almacenar??
+
+
 except Error as e:
     print(e)
 finally:
     cursor.close()
     conn.close()
-# connection1 = nk.ConnectHandler(**Ap_credentials)
-# Ap_data = connection1.send_command("") #cambair comando horst
-# Ap_data_splitline = Ap_data.splitlines()[1:2:1]
-# Ap_data_splitline2 = Ap_data.splitlines()[:1:1] #PARA SACAR EL NOMBRE DEL ACCESS POINT
-# Ap_data_list=Ap_data_splitline[0].split()
-# Ap_data_list2=Ap_data_splitline2[0].split()
-# Ap_macaddress=Ap_data_list[-1]
-# AP_name=Ap_data_list2[-1] #Se obtiene la MAC Address y el Nombre del access point
 
-# clientes_Conectados=[]
-# Ap_data = connection1.send_command("iwinfo wlan0 assoc")
-# Ap_data_splitline = Ap_data.splitlines()
-# for clientes in Ap_data_splitline:
-#     clientes_Conectados.append(clientes.split()[0])
-#     print("Se esta monitoreando el router con MAC Address "+Ap_macaddress + ' : '+ verifica_Clientes_Conectados(clientes_Conectados,AP_name))
+#consider 5 min delay
 
-#informacion desde la DB --> migrar
-# doc_Ap_macaddress_ref = db.collection('mac_devices').document(Ap_macaddress)
-# doc__Ap_macaddress_dataframe = doc_Ap_macaddress_ref.get()
-# doc_coleccion=doc__Ap_macaddress_dataframe.to_dict()
-# for conectado in clientes_Conectados:
-#   lista_devices=doc_coleccion.get("devices")
-#   for macmatch in lista_devices :
-#     if conectado==macmatch:               
-#       registration_token = doc_coleccion.get("token")
-#       now = datetime.now()
-#       #checkout DB STRUCTURE
-#       datos = {
-#                 "mac_device1": macmatch,
-#                 "mac_ap":Ap_macaddress,
-#                 "fecha": now,
-#                 "token": registration_token
-#                         }
+#--------------------------INFO APS------------------------------#
+
+Ap1_credentials = { #-->change
+    'ip': "", 
+    'device_type': "autodetect",
+    'username': "root",
+    'password': "root"
+}
+
+Ap2_credentials = { #-->change
+    'ip': "", 
+    'device_type': "autodetect",
+    'username': "root",
+    'password': "root"
+}
+
+Ap3_credentials = { #-->change
+    'ip': "", 
+    'device_type': "autodetect",
+    'username': "root",
+    'password': "root"
+}
+
+def obtenerMAC(Ap_credentials):
+    mac_assoc = []
+    for mac in values:
+        Ap_credentials["mac"]=mac
+        try:
+            connect = nk.ConnectHandler(**Ap_credentials)
+            Ap_data = connect.send_command("iwinfo wlan0 assoc") #revsar interfaz 
+            lista_MAC = Ap_data.splitlines()[1:2:1] #check match index per value
+            Ap_data_list = lista_MAC[0].split
+            mac_assoc.append(Ap_data_list[-1])
+        except Exception as ex:
+            print(ex)
+    return mac_assoc
 
 #----------------------------POSICIONAMIENTO----------------------------#
 x1 = 4.80
@@ -96,12 +106,12 @@ d0 = 0.5
 n = 1 #ant 2
 wl = 2
 
-lista_valores_rss = [37,37,41.6] #modifiocar los valores obteniodos de la peticion
+lista_valores_rss = [37,37,41.6] #query values
 
 #TRILATERACION
 # ##modificar 
 # rssiT1 = 
-rssiT1 = (lista_valores_rss[0]-rssi0-wl)/(10*n) #modificar logaritmo
+rssiT1 = (lista_valores_rss[0]-rssi0-wl)/(10*n) 
 d1 = 10**(rssiT1)*d0
 rssiT2 = (lista_valores_rss[1]-rssi0-wl)/(10*n)
 d2 = 10**(rssiT2)*d0
