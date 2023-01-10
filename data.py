@@ -35,15 +35,18 @@ try:
       dbconfig = config
       conn = MySQLConnection(**dbconfig)
       cursor = conn.cursor()
-      cursor.execute("SELECT id_router,fecha,hora,mac,rssi FROM info_horst ORDER BY hora des;") #check query
-      values.append(cursor.fetchmany())
+      cursor.execute("SELECT id_router,fecha,hora,mac,rssi FROM info_horst ORDER BY hora desc;") #check query
+      #store data
+      
+      cursor.fetchmany()
+    #   values.append(cursor.fetchmany())
 
       #posicion 
-      cursor.execute("SELECT * from info_router")
+      cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
       cursor.fetchall() #--> value per router 
 
       #consultar o almacenar??
-
+    
 
 except Error as e:
     print(e)
