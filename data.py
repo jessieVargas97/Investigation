@@ -11,6 +11,7 @@ from datetime import datetime
 import os 
 import mysql.connector
 from mysql.connector import MySQLConnection, Error
+import pymysql
 
 #----------------------------------------------------------#
 # dispositivos = []
@@ -22,39 +23,71 @@ from mysql.connector import MySQLConnection, Error
 #-------------------------------------------------#
 
 #Connection to DB
-config = {
-        'user':'root',
-        'password':'h8bmbfar',
-        'host':'200.10.150.149',
-        'database':'wificrowdspy'
-}
+#method1
+# config = {
+#         'user':'root',
+#         'password':'h8bmbfar',
+#         'host':'200.10.150.149',
+#         'database':'wificrowdspy'
+# }
 
-values = [] # almacena macs per query
+valuesList = [] # almacena macs per query
 
-try:
-      dbconfig = config
-      conn = MySQLConnection(**dbconfig)
-      cursor = conn.cursor()
-      cursor.execute("SELECT id_router,fecha,hora,mac,rssi FROM info_horst ORDER BY hora desc;") #check query
-      #store data
-      
-      cursor.fetchmany()
-    #   values.append(cursor.fetchmany())
-
-      #posicion 
-      cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
-      cursor.fetchall() #--> value per router 
-
-      #consultar o almacenar??
+# try:
+#       dbconfig = config
+#       conn = MySQLConnection(**dbconfig)
+#       cursor = conn.cursor()
+#       cursor.execute("SELECT id_router,fecha,hora,mac,rssi FROM info_horst ORDER BY hora desc;") #check query
+#       queryResults = cursor.fetchmany() #-> datatype returned
+#       #store data
+#       fileWrite = open("values.txt","+w") 
+#       for value in queryResults:
+#         fileWrite.write("value")
+    
+#       #posicion 
+#       cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
+#       datosRouters = cursor.fetchall() #--> value per router 
+#       fileWrite = open("values.txt","+w") #-> change tx
+#       #consultar o almacenar??
     
 
-except Error as e:
-    print(e)
-finally:
-    cursor.close()
-    conn.close()
+# except Error as e:
+#     print(e)
+# finally:
+#     cursor.close()
+#     conn.close()
 
 #consider 5 min delay
+
+#method2
+filewrite = open("values.txt","+w")
+try:
+	conexion = pymysql.connect(host='200.10.150.149',
+                             user='root',
+                             password='h8bmbfar',
+                             db='wificrowdspy')
+	try:
+		with conexion.cursor() as cursor:
+			# En este caso no necesitamos limpiar ningún dato
+			cursor.execute("SELECT id_router,fecha,hora,mac,rssi FROM info_horst ORDER BY hora desc;")
+ 
+			# Con fetchall traemos todas las filas
+			valuesHorst = cursor.fetchall()
+            
+			for val in valuesHorst:
+				filewrite.write("".join(val))
+                valuesList.append(val)
+
+            
+
+	finally:
+		conexion.close()
+        
+	
+except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
+	print("Ocurrió un error al conectar: ", e)
+filewrite.close() #revisar position
+    
 
 #--------------------------INFO APS------------------------------#
 
