@@ -61,9 +61,10 @@ valuesList = [] # almacena macs per query
 
 #method2
 
-#Iterar utilizando la funcion obtenerMAC para cada router que se tiene (Ap1_credentials,Ap2_credentials...), para llenar una lista con las MACs (valuesList)
-#, luego conectarme a la base de datos y por cada MAC  de la lista (valuesList) hacer el query filtrando MAC (WHERE)  y asi poder hacer el filewrite
-filewrite = open("values.txt","+w")
+
+#Se hara un query a la base de datos donde se agrupara (group by) por el id de router y mac un average de la columna RSSI ,para tener varios rssi(promediados) y poder hacer los calculos
+##
+#filewrite = open("values.txt","+w")
 try:
 	conexion = pymysql.connect(host='200.10.150.149',
                              user='root',
@@ -71,59 +72,64 @@ try:
                              db='wificrowdspy')
 	try:
 		with conexion.cursor() as cursor:
-			# En este caso no necesitamos limpiar ningún dato
-			cursor.execute("SELECT id_router,fecha,hora,mac,rssi FROM info_horst ORDER BY hora desc;")
+			cursor.execute("SELECT mac, id_router, hora, avg(rssi) FROM info_horst  where hora= (select max(hora) from info_horst) group by id_router, mac , hora;")
  
 			# Con fetchall traemos todas las filas
 			valuesHorst = cursor.fetchall()
             
-			for val in valuesHorst:
-				filewrite.write("".join(val))
+            ############################################################
+            #AQUI YA HAY QUE PROGRAMAR PARA QUE SE REALICEN LOS CALCULOS
+            ############################################################
+
+			#for val in valuesHorst:
+                #filewrite.write("".join(val))
                 #valuesList.append(val)
+
 	finally:
-		conexion.close()
+	    conexion.close()
         
-	
+
+
 except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
 	print("Ocurrió un error al conectar: ", e)
-filewrite.close() #revisar position
+#filewrite.close() #revisar position
     
 
 #--------------------------INFO APS------------------------------#
 
-Ap1_credentials = { #-->change
+Ap1_credentials = {
     'ip': "192.168.65.10", 
     'device_type': "autodetect",
     'username': "root",
     'password': "utpU3oxLrb2F"
 }
 
-Ap2_credentials = { #-->change
+Ap2_credentials = { 
     'ip': "192.168.65.9", 
     'device_type': "autodetect",
     'username': "root",
     'password': "utpU3oxLrb2F"
 }
 
-Ap3_credentials = { #-->change
+Ap3_credentials = { 
     'ip': "192.168.65.8", 
     'device_type': "autodetect",
     'username': "root",
     'password': "utpU3oxLrb2F"
 }
 
-def obtenerMAC(Ap_credentials):
-    mac_assoc = []
-    try:
-        connect = nk.ConnectHandler(**Ap_credentials)
-        Ap_data = connect.send_command("iwinfo wlan0 assoc") #revsar interfaz 
-        lista_MAC = Ap_data.splitlines()[1:2:1] #check match index per value
-        for clientes in lista_MAC:
-            Ap_data_list = lista_MAC[0].split
-            mac_assoc.append(Ap_data_list[-1])
-    except Exception as ex:
-        print(ex)
-    return mac_assoc
+# def obtenerMAC(Ap_credentials):
+#     mac_assoc = []
+#     try:
+#         connect = nk.ConnectHandler(**Ap_credentials)
+#         Ap_data = connect.send_command("iwinfo wlan0 assoc") #revsar interfaz 
+#         lista_MAC = Ap_data.splitlines()[1:2:1] #check match index per value
+#         for clientes in lista_MAC:
+#             Ap_data_list = lista_MAC[0].split
+#             mac_assoc.append(Ap_data_list[-1])
+#     except Exception as ex:
+#         print(ex)
+#     return mac_assoc
 #AHORA obtenerMAC recibe como parametro credenciales de Ap, se conecta y devuelve una lista de las mac que tiene conectadas al router
 
 
