@@ -12,7 +12,8 @@ import os
 import mysql.connector
 from mysql.connector import MySQLConnection, Error
 import pymysql
-import DBconnection
+import datetime
+# import DBconnection
 #----------------------------------------------------------#
 # dispositivos = []
 # fichero = open("values.txt")
@@ -24,51 +25,67 @@ import DBconnection
 
 #Connection to DB
 
-valuesList = [] # almacena macs per query
+# valuesList = [] # almacena macs per query
 
 global valuesHorst
-global valueRouters
-# filewrite = open("values.txt","w")
-try:
-	conexion = pymysql.connect(host='200.10.150.149',
-                             user='root',
-                             password='h8bmbfar',
-                             db='wificrowdspy')
-	try:
-		with conexion.cursor() as cursor:
-			# En este caso no necesitamos limpiar ningún dato
-			cursor.execute("SELECT mac, id_router, hora, avg(rssi) FROM info_horst  where hora= (select max(hora) from info_horst) group by id_router, mac , hora;")
+global valorAP
+
+# # filewrite = open("values.txt","w")
+# try:
+# 	conexion = pymysql.connect(host='200.10.150.149',
+#                              user='root',
+#                              password='h8bmbfar',
+#                              db='wificrowdspy')
+# 	try:
+# 		with conexion.cursor() as cursor:
+# 			# En este caso no necesitamos limpiar ningún dato
             
-			# Con fetchall traemos todas las filas
-			valuesHorst = cursor.fetchall()
+# 			cursor.execute("SELECT mac, id_router, hora, avg(rssi) FROM info_horst  where hora= (select max(hora) from info_horst) group by id_router, mac , hora;")
             
-			cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
-            valueRouters = cursor.fetchall()
+# 			# Con fetchall traemos todas las filas
+# 			valuesHorst = cursor.fetchall()
+            
+# 			cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
+#             # valorAP = cursor.fetchall()
 
             
 
-	finally:
-		conexion.close()
+# 	finally:
+# 		conexion.close()
         
 	
-except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
-	print("Ocurrió un error al conectar: ", e)
+# except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
+# 	print("Ocurrió un error al conectar: ", e)
 
 #values to use
-macact = valuesHorst[0][0]
-idRouter = valuesHorst[0][1]
-hourDate = valuesHorst[0][2]
-rssival = valuesHorst[0][3]
+# macPerQ = []
+# idRouterPerQ = []
+# hourDatePerQ = []
+# rssivalPerQ = []
 
-if(valueRouter[0] == 101):
-    x1 = valueRouter[1]
-    y1 = valueRouter[2]
-elif(valueRouter[0] == 202):
-    x2 = valueRouter[1]
-    y2 = valueRouter[2]
-else:
-    x3 = valueRouter[1]
-    y3 = valueRouter[2]
+# if(len(valuesHorst)>1):
+#     for i in range(len(valuesHorst)):
+#         macPerQ.append(valuesHorst[i][0])
+#         idRouterPerQ.append(valuesHorst[i][1])
+#         hourDatePerQ.append(valuesHorst[i][2])
+#         rssivalPerQ.append(valuesHorst[i][2])
+# else:
+#     macact = valuesHorst[0][0]
+#     idRouter = valuesHorst[0][1]
+#     hourDate = valuesHorst[0][2]
+#     rssival = valuesHorst[0][3]
+
+
+#val pos 
+# if(valorAP[0] == 101):
+#     x1 = valorAP[1]
+#     y1 = valorAP[2]
+# elif(valorAP[0] == 202):
+#     x2 = valorAP[1]
+#     y2 = valorAP[2]
+# else:
+#     x3 = valorAP[1]
+#     y3 = valorAP[2]
 #--------------------------INFO APS------------------------------#
 
 Ap1_credentials = {
@@ -91,25 +108,85 @@ Ap3_credentials = {
     'username': "root",
     'password': "utpU3oxLrb2F"
 }
-
-def obtenerMAC(Ap_credentials):
-    mac_assoc = []
-    # Ap_credentials["mac"]
+mac_assoc = []
+def obtenerMAC(Ap_credentials,cm):
     try:
+        #change long act macs
         connect = nk.ConnectHandler(**Ap_credentials)
-        Ap_data = connect.send_command("iwinfo wlan1-1 assoc") #validad cada interfaz activa en los routers
-        lista_MAC = Ap_data.splitlines()[0:2:1] 
-        listaprueba=lista_MAC[0].split(' ')
-        mac_assoc.append(listaprueba[0])
+        # Ap_data = connect.send_command("iwinfo wlan1-1 assoc") 
+        Ap_data = connect.send_command(cm) #valida cada interfaz activa en los routers    
+        # lista_MAC = Ap_data.splitlines()[0:2:1]
+        lista_MAC = Ap_data.splitlines() #prueba
+        for i in range(len(lista_MAC)):
+            listaprueba=lista_MAC[0].split(' ')[0:i+5:1]
+            mac_assoc.append(listaprueba[0])    
+        # listaprueba=lista_MAC[0].split(' ')
+        # mac_assoc.append(listaprueba[0])
+        # mac_assoc.append(" 1C:CC:D6:45:D0:B7")
         #validar si mac ya exsite en el listado
     except Exception as ex:
         print(ex)
     return mac_assoc
 
-obtenerMAC(Ap3_credentials)
+obtenerMAC(Ap3_credentials,"iwinfo wlan1-1 assoc")
+# obtenerMAC(Ap1_credentials,"iwinfo wlan1-1 assoc")
+# obtenerMAC(Ap2_credentials,"iwinfo wlan1-1 assoc")
+try:
+    conn = pymysql.connect(host="200.10.150.149",
+                            user="root",
+                            password="h8bmbfar",
+                            db = "wificrowdspy")
+    with conn.cursor() as cursor:
+        for mac in mac_assoc:
+            dataDate = datetime.datetime.now().time()
+            horaVal = dataDate.strftime('%H:%M:%S')
+            print(type(horaVal))
+            cursor.execute("SELECT mac, id_router,hora ,avg(rssi) FROM info_horst WHERE mac = %s",(mac))
+            # cursor.execute("SELECT mac, id_router,hora ,avg(rssi) FROM info_horst WHERE mac = %s or hora = %s",(mac,horaVal))
+            valuesHorst = cursor.fetchall()
+            cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
+            valorAP = cursor.fetchall()
+except(pymysql.err.OperationalError,pymysql.err.InternalError) as e:
+    print(e)
 
+finally:
+    conn.commit()
+    conn.close()
+
+# values to use
+macPerQ = []
+idRouterPerQ = []
+hourDatePerQ = []
+rssivalPerQ = []
+
+if(len(valuesHorst)>1):
+    for i in range(len(valuesHorst)):
+        macPerQ.append(valuesHorst[i][0])
+        idRouterPerQ.append(valuesHorst[i][1])
+        hourDatePerQ.append(valuesHorst[i][2])
+        rssivalPerQ.append(valuesHorst[i][2])
+else:
+    macact = valuesHorst[0][0]
+    idRouter = valuesHorst[0][1]
+    hourDate = valuesHorst[0][2]
+    rssival = valuesHorst[0][3]
+
+#val pos 
+if(valorAP[0] == 101):
+    x1 = valorAP[1]
+    y1 = valorAP[2]
+elif(valorAP[0] == 202):
+    x2 = valorAP[1]
+    y2 = valorAP[2]
+else:
+    x3 = valorAP[1]
+    y3 = valorAP[2]
 #----------------------------VALIDAR MACs----------------------------#
 
+# for mac in mac_assoc:
+#     for macq in macPerQ:
+#         if mac == macq:
+#             print("Values")
 
 #----------------------------POSICIONAMIENTO----------------------------#
 # x1 = 4.80
@@ -127,10 +204,11 @@ d0 = 0.5
 n = 1 #ant 2
 wl = 2
 
-lista_valores_rss = [rssival,37,41.6] #agregar multi values
+lista_valores_rss = [50,37,41.6] #agregar multi values
 
 #TRILATERACION
 # ##modificar 
+# rssiT1 = (lista_valores_rss[0]-rssi0-wl)/(10*n)
 rssiT1 = (lista_valores_rss[0]-rssi0-wl)/(10*n) 
 d1 = 10**(rssiT1)*d0
 rssiT2 = (lista_valores_rss[1]-rssi0-wl)/(10*n)
