@@ -18,6 +18,7 @@ from dateutil.relativedelta import relativedelta
 # import DBconnection
 import threading
 import time
+from math import dist
 
 #--------------------------INFO APS------------------------------#
 #renombrar Ap1:8 Ap2:9 Ap3:10
@@ -83,8 +84,8 @@ try:
             limitSupF = dataDate.strftime("%Y-%m-%d %H:%M:%S")
             limteInf = dataDate - relativedelta(minutes=50) #se modifiocó por un margen de 10 minutos
             limteInfF = limteInf.strftime("%Y-%m-%d %H:%M:%S")
-            # cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by mac, id_router",(mac,limteInfF,limitSupF)) #consultar por grupo de macs
-            cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = '1C:CC:D6:45:D0:B7' and fecha between '2023-01-31 12:02:53' and '2023-01-31 13:02:55' group by mac, id_router;")
+            cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by mac, id_router",(mac,limteInfF,limitSupF)) #consultar por grupo de macs
+            # cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = '1C:CC:D6:45:D0:B7' and fecha between '2023-01-31 12:02:53' and '2023-01-31 13:02:55' group by mac, id_router;")
             # cursor.execute("SELECT mac, id_router,hora ,avg(rssi) FROM info_horst WHERE mac = %s or hora = %s",(mac,horaVal))
             result = cursor.fetchall()
             valuesHorst.append(result)
@@ -124,24 +125,19 @@ for pos in valorAP:
 
 x, y = var('x y')
 
-rssi0 = 30 
+rssi0 = -30 
 d0 = 0.5
 
-n = 1 #ant 2
-wl = 2
-
-lista_valores_rss = [50,37,41.6] #agregar multi values
+n = 4 #ant 2
+wl = 2#ant 2
 
 #TRILATERACION
-# ##modificar 
 
-# rssiT1 = (lista_valores_rss[0]-rssi0-wl)/(10*n)
-rssiT1 = (rssivalPerQ[0]-rssi0-wl)/(10*n) #get values per query result same order?
-rssiT1 = (lista_valores_rss[0]-rssi0-wl)/(10*n) 
+rssiT1 = (rssi0-rssivalPerQ[2]+wl)/(10*n) #get values per query result same order?
 d1 = 10**(rssiT1)*d0 #check out value its coherent
-rssiT2 = (lista_valores_rss[1]-rssi0-wl)/(10*n)
+rssiT2 = (rssi0-rssivalPerQ[1]+wl)/(10*n)
 d2 = 10**(rssiT2)*d0
-rssiT3 = (lista_valores_rss[2]-rssi0-wl)/(10*n)
+rssiT3 = (rssi0-rssivalPerQ[0]+wl)/(10*n)
 d3 = 10**(rssiT3)*d0
 
 f1 = (x-x1)**2 + (y-y1)**2 - d1**2
@@ -150,36 +146,14 @@ f3 = (x-x3)**2 + (y-y3)**2 - d3**2
 
 solution = solve((f1,f2,f3),(x,y)) #revisar valor de solucion cruces
 
-if(("I" in str(solution[0][0])) or ("I" in str(solution[0][1]))):
-    cx = str(solution[0][0])[0:-2]
-    cx= float(cx)
-    cy = float(solution[0][1])
-    coorx = round(cx, 2)
-    coory = round(cy, 2)
-    print(cx)
-else: 
-                cx = float(solution[0][0])
-                cy = float(solution[0][1])
-                coorx = round(cx, 2)
-                coory = round(cy, 2)
-
-#Actualizando Posicion en la base de datos
-datos2={
-                "PosicionX": coorx,
-                "PosicionY": coory,
-            }
-print("Coordenadas : ("+coorx+","+coory+")")
-
 #----------------------------Distanciamiento----------------------------#
 
 #define dos vectores
-a = np.array ([2, 6, 7, 7, 5, 13, 14, 17, 11, 8])
-b = np.array ([3, 5, 5, 3, 7, 12, 13, 19, 22, 7])
+a = ()
+b = ()
 
 #calcular la distancia euclidiana entre los dos vectores 
-# norma(ab)
-
-# if __name__ == 'main':
+dist(a,b)
 
 #agg DB result
 
