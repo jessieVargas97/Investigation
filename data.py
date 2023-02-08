@@ -6,7 +6,8 @@ import numpy as np
 # from numpy.linalg.norm import norma
 from numpy.lib.type_check import real
 import math
-from sympy import var, solve
+from sympy import *
+# from sympy import var, solve
 from datetime import datetime
 import os 
 import mysql.connector
@@ -84,8 +85,10 @@ try:
             limitSupF = dataDate.strftime("%Y-%m-%d %H:%M:%S")
             limteInf = dataDate - relativedelta(minutes=50) #se modifiocó por un margen de 10 minutos
             limteInfF = limteInf.strftime("%Y-%m-%d %H:%M:%S")
-            cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by mac, id_router",(mac,limteInfF,limitSupF)) #consultar por grupo de macs
-            # cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = '1C:CC:D6:45:D0:B7' and fecha between '2023-01-31 12:02:53' and '2023-01-31 13:02:55' group by mac, id_router;")
+            # cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by mac, id_router",(mac,limteInfF,limitSupF)) #consultar por grupo de macs
+            # cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-2 12:03:00' and '2023-02-2 12:04:00' group by mac, id_router;") #test1
+            # cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-2 15:41:00' and '2023-02-2 15:42:00' group by mac, id_router;") #test2
+            cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-2 16:26:00' and '2023-02-2 16:27:00' group by id_router order by id_router;")
             # cursor.execute("SELECT mac, id_router,hora ,avg(rssi) FROM info_horst WHERE mac = %s or hora = %s",(mac,horaVal))
             result = cursor.fetchall()
             valuesHorst.append(result)
@@ -103,11 +106,10 @@ macPerQ = []
 idRouterPerQ = []
 rssivalPerQ = []
 
+#obtengo la mac 
 for fila in valuesHorst:
     for elemento in fila:
-        macPerQ.append(elemento[0])#no tiene sentido ir aquí
-        idRouterPerQ.append(elemento[1])#no tiene sentido ir aquí
-        rssivalPerQ.append(elemento[2])
+        rssivalPerQ.append(elemento[1])
         
 #val pos change struct
 for pos in valorAP:
@@ -123,34 +125,87 @@ for pos in valorAP:
 
 #----------------------------POSICIONAMIENTO----------------------------#
 
-x, y = var('x y')
+x, y = symbols("x y")
+# x = Symbol('x')
+# y = Symbol('y')
 
-rssi0 = -30 
-d0 = 0.5
+rssi0 = -41.70 #indoors model 40 test 30
+d0 = 1 #ant 0.5
 
-n = 4 #ant 2
-wl = 2#ant 2
+n = 1.3 #ant 2 later 4 
+wl = 0 #ant 2
 
 #TRILATERACION
 
-rssiT1 = (rssi0-rssivalPerQ[2]+wl)/(10*n) #get values per query result same order?
-d1 = 10**(rssiT1)*d0 #check out value its coherent
+rssiT1 = (rssi0-rssivalPerQ[0]+wl)/(10*n) #get values per query result same order?
+d1 = 10**(rssiT1)*d0 
 rssiT2 = (rssi0-rssivalPerQ[1]+wl)/(10*n)
 d2 = 10**(rssiT2)*d0
-rssiT3 = (rssi0-rssivalPerQ[0]+wl)/(10*n)
+rssiT3 = (rssi0-rssivalPerQ[2]+wl)/(10*n)
 d3 = 10**(rssiT3)*d0
 
-f1 = (x-x1)**2 + (y-y1)**2 - d1**2
-f2 = (x-x2)**2 + (y-y2)**2 - d2**2
-f3 = (x-x3)**2 + (y-y3)**2 - d3**2
+#test values
+# d1 = 9.775
+# d2 = 2.58
+# d3 = 4.16
 
-solution = solve((f1,f2,f3),(x,y)) #revisar valor de solucion cruces
+# f1 = Eq((x-x1)**2 + (y-y1)**2 - d1**2)#ant
+f1 = Eq((((x-x1)**2) + ((y-y1)**2)) , (d1**2))
+f2 = Eq((((x-x2)**2) + ((y-y2)**2)) , (d2**2))
+f3 = Eq((((x-x3)**2) + ((y-y3)**2)) , (d3**2))
+
+# solution = solve((f1,f2,f3),(x,y)) #revisar valor de solucion cruces
+sol1 = solve((f1,f2),(x,y))
+sol2 = solve((f1,f3),(x,y))
+# sol3 = solve((f2,f3),(x,y)) #no need
+
+#Validar que la solucion es del sistema
+list_posSol = []
+
+#Validar dentro dimensiones
+limSupX = 4.7
+limInfX = -4.7
+limSupY = 3.5 
+limInfY = -3.5
+
+#funct?
+# sol1C = list(sol1)
+def solSE(solution):
+    lista = list(solution)
+    for s in lista:
+        if(str(s).__contains__("I") or str(s).__contains__("e")): #does not remove 2 pairs
+            lista.remove(s)
+    valSearched = "I"
+    lista = filter(lambda val: valSearched in val,solution)
+    return list(lista)
+
+sol1C = solSE(sol1)
+sol2C = solSE(sol2)
+sol3C = solSE(sol3)
+    
+# sol1C.remove(Contains("I"))
+# sol1C.pop(2)
+# sol1C.pop(2)
+
+#test this out -> 1 pair
+SolSist = 0
+for sol in sol1C:
+    for r in sol2C:
+        for res in sol3C:
+            if(sol in r or sol in res):
+                list_posSol.append(sol)
+
 
 #----------------------------Distanciamiento----------------------------#
 
+#Defino cant vectores de acuerdo MACs 
+for i in range(0,list_posSol):
+    "vect"+str(i)
+
 #define dos vectores
 a = ()
-b = ()
+b = () #determinar proceso de segundo ubicacion 
+#se determina cant de vectores segun cantidad de macs
 
 #calcular la distancia euclidiana entre los dos vectores 
 dist(a,b)
