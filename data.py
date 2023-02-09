@@ -170,14 +170,18 @@ list_posSol = []
 # sol1C = list(sol1)
 def solSE(solution):
     lista = list(solution)
+    retorno = []
     for i in range(len(lista)):
     # for s in lista:
-        if(str(i).__contains__("I") or str(i).__contains__("e")): #does not remove 2 pairs
-            lista.remove(i)
-            i = i - 1
+        i = i - 1
+        if(str(lista[i]).__contains__("I") or str(lista[i]).__contains__("e")):
+            lista.remove(lista[i])
+            # i = i - 1
+        else:
+            retorno.append(lista[i])
     # valSearched = "I"
     # lista = filter(lambda val: valSearched in val,solution)
-    return lista
+    return retorno
 
 #revisar
 sol1C = solSE(sol1)
@@ -187,61 +191,45 @@ list_posSol.append(sol2C)
 sol3C = solSE(sol3)
 list_posSol.append(sol3C)
     
-#test this out -> 1 pair
-# SolSist = 0
-# for sol in sol1C:
-#     for r in sol2C:
-#         if(sol in r):
-#             list_posSol.append(sol)
-
-#no lo utilizo 
-# def generarVectorName(listaNameVectores):
-#     listaNameVectores = []
-#     for i in range(0,list_posSol):
-#         listaNameVectores.append("vect"+str(i))  #cuantos retornos tengo??
-    
-
-# def generarVector(x, y):
-#         name = (x,y) #retorna una tupla??
-    # return name
+def parOrdenado(lista1,lista2):
+    if(lista1 )
 
 #Validar dentro dimensiones 
 listVectores = []
+coordperLine = [] #necesario
 limSupX = 4.7
 limInfX = -4.7
 limSupY = 3.5 
 limInfY = -3.5
 for secc in list_posSol:
-    coord = str(secc).split(',')
-    for sol in sol1C:
-        for r in sol2C:
-            solstr = str(sol).split(',') #revisar
-            rsstr = str(r).split(',')
-            detValX = solstr[0] - rsstr[0]
-            detValY = solstr[1] - rsstr[1]
-            if(detValX < 0.5 and detValY < 0.5):
-                # valPromX = (solstr[0] - rsstr[0])/2 #verificar si no funcion
-                valPromX = np.mean(solstr[0], rsstr[0])
-                valPromY = np.mean(solstr[1], rsstr[1])
-                if(valPromX > limSupX or valPromX < limInfX and valPromY > limSupY or valPromY < limInfY):
-                    valuetoVector = (valPromX,valPromY)
-                    listVectores.append(valuetoVector) #tiene sentido??
+    if(len(secc) != 0):
+        coordperLine = str(secc).split(',')
+        # coord = coordperLine
+        for sol in sol1C:
+            for r in sol2C:
+                solstr = str(sol).split(',')
+                rsstr = str(r).split(',')
+                detValX = solstr[0] - rsstr[0]
+                detValY = solstr[1] - rsstr[1]
+                if(detValX < 0.5 and detValY < 0.5):
+                    # valPromX = (solstr[0] - rsstr[0])/2 #verificar si no funcion
+                    valPromX = np.mean(solstr[0], rsstr[0])
+                    valPromY = np.mean(solstr[1], rsstr[1])
+                    if(valPromX > limSupX or valPromX < limInfX and valPromY > limSupY or valPromY < limInfY):
+                        valuetoVector = (valPromX,valPromY)
+                        listVectores.append(valuetoVector) #tiene sentido??
 
                      
 
 #----------------------------Distanciamiento----------------------------#
 
-#Defino cant vectores de acuerdo MACs 
-# for i in range(0,list_posSol):
-#     "vect"+str(i)
-#determinar proceso de segundo ubicacion 
-#se determina cant de vectores segun cantidad de macs
-
-# dist(a,b)
 resultadoDistancia = []
 for i in range(len(listVectores)):
     for j in range(len(listVectores)-1):
         resultadoDistancia.append(listVectores[i],listVectores[j])
+
+
+#----------------------------Actualizar BD por posiciones----------------------------#
 
 #agg DB result
 
