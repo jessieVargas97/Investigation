@@ -74,10 +74,17 @@ valuesHorst = []
 valorAP = []
 
 try:
-    conn = pymysql.connect(host="200.10.150.149",
-                            user="root",
-                            password="h8bmbfar",
+    conn = pymysql.connect(host="200.10.150.147", #se cambió la BD
+                            user="test",
+                            password="H8bmbfar!",
                             db = "wificrowdspy")
+    
+    # dataDate = datetime.now() #objetos se trabajan en en tipo date
+            
+    # limitSupF = dataDate.strftime("%Y-%m-%d %H:%M:%S")
+    # limteInf = dataDate - relativedelta(minutes=50) #se modifiocó por un margen de 10 minutos
+    # limteInfF = limteInf.strftime("%Y-%m-%d %H:%M:%S")
+
     with conn.cursor() as cursor:
         for mac in mac_assoc:
             dataDate = datetime.now() #objetos se trabajan en en tipo date
@@ -85,11 +92,8 @@ try:
             limitSupF = dataDate.strftime("%Y-%m-%d %H:%M:%S")
             limteInf = dataDate - relativedelta(minutes=50) #se modifiocó por un margen de 10 minutos
             limteInfF = limteInf.strftime("%Y-%m-%d %H:%M:%S")
-            # cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by mac, id_router",(mac,limteInfF,limitSupF)) #consultar por grupo de macs
-            # cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-2 12:03:00' and '2023-02-2 12:04:00' group by mac, id_router;") #test1
-            # cursor.execute("SELECT mac, id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-2 15:41:00' and '2023-02-2 15:42:00' group by mac, id_router;") #test2
-            cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-2 16:26:00' and '2023-02-2 16:27:00' group by id_router order by id_router;")
-            # cursor.execute("SELECT mac, id_router,hora ,avg(rssi) FROM info_horst WHERE mac = %s or hora = %s",(mac,horaVal))
+            cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-8 15:33:00' and '2023-02-8 16:03:00' group by id_router order by id_router;")
+            # cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by id_router order by id_router;",(mac,limteInfF,limitSupF))
             result = cursor.fetchall()
             valuesHorst.append(result)
             cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
@@ -132,8 +136,8 @@ x, y = symbols("x y")
 rssi0 = -41.70 #indoors model 40 test 30
 d0 = 1 #ant 0.5
 
-n = 1.3 #ant 2 later 4 
-wl = 0 #ant 2
+n = 1.54 #ant 2 later 4 
+wl = 2 #ant 2
 
 #TRILATERACION
 
@@ -157,58 +161,87 @@ f3 = Eq((((x-x3)**2) + ((y-y3)**2)) , (d3**2))
 # solution = solve((f1,f2,f3),(x,y)) #revisar valor de solucion cruces
 sol1 = solve((f1,f2),(x,y))
 sol2 = solve((f1,f3),(x,y))
-# sol3 = solve((f2,f3),(x,y)) #no need
+sol3 = solve((f2,f3),(x,y)) #no need
 
 #Validar que la solucion es del sistema
 list_posSol = []
-
-#Validar dentro dimensiones
-limSupX = 4.7
-limInfX = -4.7
-limSupY = 3.5 
-limInfY = -3.5
 
 #funct?
 # sol1C = list(sol1)
 def solSE(solution):
     lista = list(solution)
-    for s in lista:
-        if(str(s).__contains__("I") or str(s).__contains__("e")): #does not remove 2 pairs
-            lista.remove(s)
-    valSearched = "I"
-    lista = filter(lambda val: valSearched in val,solution)
-    return list(lista)
+    for i in range(len(lista)):
+    # for s in lista:
+        if(str(i).__contains__("I") or str(i).__contains__("e")): #does not remove 2 pairs
+            lista.remove(i)
+            i = i - 1
+    # valSearched = "I"
+    # lista = filter(lambda val: valSearched in val,solution)
+    return lista
 
+#revisar
 sol1C = solSE(sol1)
+list_posSol.append(sol1C) #revisar
 sol2C = solSE(sol2)
+list_posSol.append(sol2C)
 sol3C = solSE(sol3)
+list_posSol.append(sol3C)
     
-# sol1C.remove(Contains("I"))
-# sol1C.pop(2)
-# sol1C.pop(2)
-
 #test this out -> 1 pair
-SolSist = 0
-for sol in sol1C:
-    for r in sol2C:
-        for res in sol3C:
-            if(sol in r or sol in res):
-                list_posSol.append(sol)
+# SolSist = 0
+# for sol in sol1C:
+#     for r in sol2C:
+#         if(sol in r):
+#             list_posSol.append(sol)
 
+#no lo utilizo 
+# def generarVectorName(listaNameVectores):
+#     listaNameVectores = []
+#     for i in range(0,list_posSol):
+#         listaNameVectores.append("vect"+str(i))  #cuantos retornos tengo??
+    
+
+# def generarVector(x, y):
+#         name = (x,y) #retorna una tupla??
+    # return name
+
+#Validar dentro dimensiones 
+listVectores = []
+limSupX = 4.7
+limInfX = -4.7
+limSupY = 3.5 
+limInfY = -3.5
+for secc in list_posSol:
+    coord = str(secc).split(',')
+    for sol in sol1C:
+        for r in sol2C:
+            solstr = str(sol).split(',') #revisar
+            rsstr = str(r).split(',')
+            detValX = solstr[0] - rsstr[0]
+            detValY = solstr[1] - rsstr[1]
+            if(detValX < 0.5 and detValY < 0.5):
+                # valPromX = (solstr[0] - rsstr[0])/2 #verificar si no funcion
+                valPromX = np.mean(solstr[0], rsstr[0])
+                valPromY = np.mean(solstr[1], rsstr[1])
+                if(valPromX > limSupX or valPromX < limInfX and valPromY > limSupY or valPromY < limInfY):
+                    valuetoVector = (valPromX,valPromY)
+                    listVectores.append(valuetoVector) #tiene sentido??
+
+                     
 
 #----------------------------Distanciamiento----------------------------#
 
 #Defino cant vectores de acuerdo MACs 
-for i in range(0,list_posSol):
-    "vect"+str(i)
-
-#define dos vectores
-a = ()
-b = () #determinar proceso de segundo ubicacion 
+# for i in range(0,list_posSol):
+#     "vect"+str(i)
+#determinar proceso de segundo ubicacion 
 #se determina cant de vectores segun cantidad de macs
 
-#calcular la distancia euclidiana entre los dos vectores 
-dist(a,b)
+# dist(a,b)
+resultadoDistancia = []
+for i in range(len(listVectores)):
+    for j in range(len(listVectores)-1):
+        resultadoDistancia.append(listVectores[i],listVectores[j])
 
 #agg DB result
 
