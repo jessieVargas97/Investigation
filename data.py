@@ -65,6 +65,7 @@ valuesHorst = []
 valorAP = []
 
 try:
+
     conn = pymysql.connect(host="200.10.150.147", #se cambió la BD
                             user="test",
                             password="H8bmbfar!",
@@ -84,7 +85,7 @@ try:
         #     cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
         #     valorAP = cursor.fetchall()
         
-        cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-8 15:30:00' and '2023-02-8 15:35:00' group by id_router order by id_router;")
+        cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-15 15:53:38' and '2023-02-15 15:55:41' group by id_router order by id_router;")
             # cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by id_router order by id_router;",(mac,limteInfF,limitSupF))
         result = cursor.fetchall()
         valuesHorst.append(result)
@@ -140,6 +141,15 @@ rssiT2 = (rssi0-rssivalPerQ[1]+wl)/(10*n)
 d2 = 10**(rssiT2)*d0
 rssiT3 = (rssi0-rssivalPerQ[2]+wl)/(10*n)
 d3 = 10**(rssiT3)*d0
+
+#max y mins
+Xmax = min(x1 + d1, x2 + d2, x3 + d3)
+Xmin = max(x1 - d1, x2 - d2, x3 - d3)
+Ymax = min(y1 + d1, y2 + d2, y3 + d3)
+Ymin = max(y1 - d1, y2 - d2, y3 - d3)
+
+Xest = (Xmin + Xmax)/2
+Yest = (Ymin + Ymax)/2
 
 f1 = Eq((((x-x1)**2) + ((y-y1)**2)) , (d1**2))
 f2 = Eq((((x-x2)**2) + ((y-y2)**2)) , (d2**2))
