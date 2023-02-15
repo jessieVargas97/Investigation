@@ -71,18 +71,26 @@ try:
                             db = "wificrowdspy")
 
     with conn.cursor() as cursor:
-        for mac in mac_assoc:
-            dataDate = datetime.now()
-            #time lapse check in realtime scenario
-            limitSupF = dataDate.strftime("%Y-%m-%d %H:%M:%S")
-            limteInf = dataDate - relativedelta(minutes=10) 
-            limteInfF = limteInf.strftime("%Y-%m-%d %H:%M:%S")
-            cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-8 15:33:00' and '2023-02-8 16:03:00' group by id_router order by id_router;")
+        # for mac in mac_assoc:
+        #     dataDate = datetime.now()
+        #     #time lapse check in realtime scenario
+        #     limitSupF = dataDate.strftime("%Y-%m-%d %H:%M:%S")
+        #     limteInf = dataDate - relativedelta(minutes=10) 
+        #     limteInfF = limteInf.strftime("%Y-%m-%d %H:%M:%S")
+        #     cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-8 15:33:00' and '2023-02-8 16:03:00' group by id_router order by id_router;")
+        #     # cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by id_router order by id_router;",(mac,limteInfF,limitSupF))
+        #     result = cursor.fetchall()
+        #     valuesHorst.append(result)
+        #     cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
+        #     valorAP = cursor.fetchall()
+        
+        cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-8 15:30:00' and '2023-02-8 15:35:00' group by id_router order by id_router;")
             # cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by id_router order by id_router;",(mac,limteInfF,limitSupF))
-            result = cursor.fetchall()
-            valuesHorst.append(result)
-            cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
-            valorAP = cursor.fetchall()
+        result = cursor.fetchall()
+        valuesHorst.append(result)
+        cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
+        valorAP = cursor.fetchall()
+
 except(pymysql.err.OperationalError,pymysql.err.InternalError) as e:
     print(e)
 
@@ -97,7 +105,8 @@ rssivalPerQ = []
 
 #obtengo el valor de RSSI   
 for fila in valuesHorst:
-    if len(fila) == 3:
+    # if len(fila) == 3:
+    if len(fila) == 2 or len(fila) == 3:
         for elemento in fila:
             rssivalPerQ.append(elemento[1])
         
@@ -132,19 +141,21 @@ d2 = 10**(rssiT2)*d0
 rssiT3 = (rssi0-rssivalPerQ[2]+wl)/(10*n)
 d3 = 10**(rssiT3)*d0
 
+f1 = Eq((((x-x1)**2) + ((y-y1)**2)) , (d1**2))
+f2 = Eq((((x-x2)**2) + ((y-y2)**2)) , (d2**2))
+f3 = Eq((((x-x3)**2) + ((y-y3)**2)) , (d3**2))
+
+sol1 = solve((f1,f2),(x,y))
+sol2 = solve((f1,f3),(x,y))
+sol3 = solve((f2,f3),(x,y)) 
+
+
 #test values
 # d1 = 9.775
 # d2 = 2.58
 # d3 = 4.16
 
-f1 = Eq((((x-x1)**2) + ((y-y1)**2)) , (d1**2))
-f2 = Eq((((x-x2)**2) + ((y-y2)**2)) , (d2**2))
-f3 = Eq((((x-x3)**2) + ((y-y3)**2)) , (d3**2))
-
 # solution = solve((f1,f2,f3),(x,y)) #revisar SE sol 
-sol1 = solve((f1,f2),(x,y))
-sol2 = solve((f1,f3),(x,y))
-sol3 = solve((f2,f3),(x,y)) 
 
 list_posSol = []
 
@@ -175,12 +186,15 @@ def parOrdenado(lista1,lista2,lista3):
     #procesamiento previo par ordenado ahorro anidaciones?    
     if not lista1 or not lista2 and not lista1 or not lista3 and not lista2 or not lista3:
             #revisar logica validaciones NO TIENE
-        for v in lista2:
-            for v1 in lista3:
+        for v in range(len(lista2)):
+            for v1 in range(len(lista3)):
                 # vstr = str(v).split(',')
                 # v1str = str(v1).split(',')
-                detValX = v[0] - v1[0]
-                detValY = v[1] - v1[1]
+                # detValX = v[0] - v1[0]
+                # detValY = v[1] - v1[1]
+                detValX = Float(lista2[v]) - Float(lista3[v1]) #
+                #corregir esto
+                detValY = lista2[v+1] - lista3[v1+1]
                 if(detValX < 0.5 and detValY < 0.5):
                     valPromX = np.mean(v[0], v1[0])
                     valPromY = np.mean(v[1], v1[1])
