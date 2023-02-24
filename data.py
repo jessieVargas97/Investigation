@@ -5,6 +5,8 @@ import time
 import numpy as np
 # from numpy.linalg.norm import norma
 from numpy.lib.type_check import real
+from numpy import matrix
+from numpy import linalg
 import math
 from sympy import *
 # from sympy import var, solve
@@ -24,7 +26,7 @@ from math import dist
 #--------------------------INFO APS------------------------------#
 #renombrar Ap1:8 Ap2:9 Ap3:10
 Ap1_credentials = {
-    'ip': "192.168.65.10", 
+    'ip': "192.168.65.8", 
     'device_type': "autodetect",
     'username': "root",
     'password': "utpU3oxLrb2F"
@@ -38,30 +40,12 @@ Ap2_credentials = {
 }
 
 Ap3_credentials = {
-    'ip': "192.168.65.8", 
+    'ip': "192.168.65.10", 
     'device_type': "autodetect",
     'username': "root",
     'password': "utpU3oxLrb2F"
 }
 
-mac_assoc = []
-def obtenerMAC(Ap_credentials,cm):
-    try:
-        connect = nk.ConnectHandler(**Ap_credentials)
-        Ap_data = connect.send_command(cm) #valida cada interfaz activa en los routers    
-        lista_MAC = Ap_data.splitlines() 
-        for i in range(len(lista_MAC)):
-            listaprueba=lista_MAC[i].split(' ')
-            if len(listaprueba[0]) == 17:
-                mac_assoc.append(listaprueba[0])
-            
-    except Exception as ex:
-        print(ex)
-    return mac_assoc
-
-obtenerMAC(Ap3_credentials,"iwinfo wlan1-1 assoc")
-
-valuesHorst = []
 valorAP = []
 
 try:
@@ -72,25 +56,8 @@ try:
                             db = "wificrowdspy")
 
     with conn.cursor() as cursor:
-        # for mac in mac_assoc:
-        #     dataDate = datetime.now()
-        #     #time lapse check in realtime scenario
-        #     limitSupF = dataDate.strftime("%Y-%m-%d %H:%M:%S")
-        #     limteInf = dataDate - relativedelta(minutes=10) 
-        #     limteInfF = limteInf.strftime("%Y-%m-%d %H:%M:%S")
-        #     cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-8 15:33:00' and '2023-02-8 16:03:00' group by id_router order by id_router;")
-        #     # cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by id_router order by id_router;",(mac,limteInfF,limitSupF))
-        #     result = cursor.fetchall()
-        #     valuesHorst.append(result)
-        #     cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
-        #     valorAP = cursor.fetchall()
-        
-        cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-15 15:53:38' and '2023-02-15 15:55:41' group by id_router order by id_router;")
-            # cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by id_router order by id_router;",(mac,limteInfF,limitSupF))
-        result = cursor.fetchall()
-        valuesHorst.append(result)
-        cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
-        valorAP = cursor.fetchall()
+         cursor.execute("SELECT id_router,pos_x,pos_y from info_router;")
+         valorAP = cursor.fetchall()
 
 except(pymysql.err.OperationalError,pymysql.err.InternalError) as e:
     print(e)
@@ -98,7 +65,77 @@ except(pymysql.err.OperationalError,pymysql.err.InternalError) as e:
 finally:
     conn.commit()
     conn.close()
+  
+ #val pos change struct
+for pos in valorAP:
+    if(pos[0] == 101):
+        x1 = pos[1]
+        y1 = pos[2]
+    elif(pos[0] == 202):
+        x2 = pos[1]
+        y2 = pos[2]
+    else:
+        x3 = pos[1]
+        y3 = pos[2]
+   
+mac_assoc = []
 
+dataDate = datetime.now()
+#time lapse check in realtime scenario
+limteSup = dataDate #- relativedelta(hours = 95)
+limitSupF = limteSup.strftime("%Y-%m-%d %H:%M:%S")
+limteInf = limteSup - relativedelta(seconds=20) 
+limteInfF = limteInf.strftime("%Y-%m-%d %H:%M:%S")
+
+def obtenerMAC():
+    try:
+        conn = pymysql.connect(host="200.10.150.147", #se cambió la BD
+                            user="test",
+                            password="H8bmbfar!",
+                            db = "wificrowdspy")
+        with conn.cursor() as cursor:
+                   
+                    # cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '5A:B3:F5:94:66:10' and fecha between '2023-02-8 16:00:00' and '2023-02-8 16:03:00' group by id_router order by id_router;")
+                    cursor.execute("SELECT mac FROM info_horst WHERE fecha between %s and %s group by mac having count(distinct id_router)>2;",(limteInfF,limitSupF))
+                    result = cursor.fetchall()
+                    for element in result:
+                        mac_assoc.append(element[0])
+                     
+                    
+    except(pymysql.err.OperationalError,pymysql.err.InternalError) as e:
+        print(e)
+    finally:
+        conn.commit()
+        conn.close()
+
+    return mac_assoc
+
+obtenerMAC()
+
+
+valuesHorst = []
+try:
+
+    conn = pymysql.connect(host="200.10.150.147", #se cambió la BD
+                            user="test",
+                            password="H8bmbfar!",
+                            db = "wificrowdspy")
+
+    with conn.cursor() as cursor:
+         for mac in mac_assoc:
+            #  cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = %s and fecha between %s and %s group by id_router order by id_router;",(mac,limteInfF,limitSupF))
+             cursor.execute("SELECT id_router, avg(rssi) FROM info_horst WHERE mac = '1c:cc:d6:45:d0:b7'and fecha between '2023-02-22 14:20:00' and '2023-02-22 14:20:20' group by id_router order by id_router;")
+             result = cursor.fetchall()
+             valuesHorst.append(result)
+         
+except(pymysql.err.OperationalError,pymysql.err.InternalError) as e:
+    print(e)
+
+finally:
+    conn.commit()
+    conn.close()
+
+# values to use
 # values to use
 macPerQ = []
 idRouterPerQ = []
@@ -111,148 +148,102 @@ for fila in valuesHorst:
         for elemento in fila:
             rssivalPerQ.append(elemento[1])
         
-#val pos change struct
-for pos in valorAP:
-    if(pos[0] == 101):
-        x1 = pos[1]
-        y1 = pos[2]
-    elif(pos[0] == 202):
-        x2 = pos[1]
-        y2 = pos[2]
-    else:
-        x3 = pos[1]
-        y3 = pos[2]
 
 #----------------------------POSICIONAMIENTO----------------------------#
-
-x, y = symbols("x y")
-
+posicion =[]
 rssi0 = -41.70 #indoors model 40 test 30
 d0 = 1 #ant 0.5
+n = 1.66 #ant 2 later 4 
+wl = 0
+i=0
 
-n = 1.54 #ant 2 later 4 
-wl = 2
-
+for mac in mac_assoc:
+    x, y = symbols("x y")
 #TRILATERACION
-
-rssiT1 = (rssi0-rssivalPerQ[0]+wl)/(10*n) 
-d1 = 10**(rssiT1)*d0 
-rssiT2 = (rssi0-rssivalPerQ[1]+wl)/(10*n)
-d2 = 10**(rssiT2)*d0
-rssiT3 = (rssi0-rssivalPerQ[2]+wl)/(10*n)
-d3 = 10**(rssiT3)*d0
+    rssiT1 = (rssi0-rssivalPerQ[i]+wl)/(10*n) 
+    d1 = 10**(rssiT1)*d0 
+    rssiT2 = (rssi0-rssivalPerQ[i+1]+wl)/(10*n)
+    d2 = 10**(rssiT2)*d0
+    rssiT3 = (rssi0-rssivalPerQ[i+2]+wl)/(10*n)
+    d3 = 10**(rssiT3)*d0
 
 #max y mins
-Xmax = min(x1 + d1, x2 + d2, x3 + d3)
-Xmin = max(x1 - d1, x2 - d2, x3 - d3)
-Ymax = min(y1 + d1, y2 + d2, y3 + d3)
-Ymin = max(y1 - d1, y2 - d2, y3 - d3)
-
-Xest = (Xmin + Xmax)/2
-Yest = (Ymin + Ymax)/2
-
-f1 = Eq((((x-x1)**2) + ((y-y1)**2)) , (d1**2))
-f2 = Eq((((x-x2)**2) + ((y-y2)**2)) , (d2**2))
-f3 = Eq((((x-x3)**2) + ((y-y3)**2)) , (d3**2))
-
-sol1 = solve((f1,f2),(x,y))
-sol2 = solve((f1,f3),(x,y))
-sol3 = solve((f2,f3),(x,y)) 
-
-
-#test values
-# d1 = 9.775
-# d2 = 2.58
-# d3 = 4.16
-
-# solution = solve((f1,f2,f3),(x,y)) #revisar SE sol 
-
-list_posSol = []
-
-def solSE(solution):
-    lista = list(solution)
-    retorno = []
-    for i in range(len(lista)):
-        i = i - 1
-        if(str(lista[i]).__contains__("I") or str(lista[i]).__contains__("e")):
-            lista.remove(lista[i])
-        else:
-            retorno.append(lista[i])
-    return retorno
-
-sol1C = solSE(sol1)
-list_posSol.append(sol1C) 
-sol2C = solSE(sol2)
-list_posSol.append(sol2C)
-sol3C = solSE(sol3)
-list_posSol.append(sol3C)
+    Xmax = min(x1 + d1, x2 + d2, x3 + d3)
+    Xmin = max(x1 - d1, x2 - d2, x3 - d3)
+    Ymax = min(y1 + d1, y2 + d2, y3 + d3)
+    Ymin = max(y1 - d1, y2 - d2, y3 - d3)
+    # Solucion Min-Max
+    xest = (Xmin + Xmax)/2
+    yest = (Ymin + Ymax)/2
+    i=i+3
+    D =matrix([[2*(x3 -x1),2*(y3 -y1)],[2*(x3 -x2),2*(y3 -y2)]])
+    b= matrix([(d1**2-d3**2)-(x1**2-x3**2)-(y1**2-y3**2),(d2**2-d3**2)-(x2**2-x3**2)-(y2**2-y3**2)])
     
-def parOrdenado(lista1,lista2,lista3):
-    limSupX = 4.7
-    limInfX = -4.7
-    limSupY = 3.5 
-    limInfY = -3.5
-    listVectoresf = []
-    #procesamiento previo par ordenado ahorro anidaciones?    
-    if not lista1 or not lista2 and not lista1 or not lista3 and not lista2 or not lista3:
-            #revisar logica validaciones NO TIENE
-        for v in range(len(lista2)):
-            for v1 in range(len(lista3)):
-                # vstr = str(v).split(',')
-                # v1str = str(v1).split(',')
-                # detValX = v[0] - v1[0]
-                # detValY = v[1] - v1[1]
-                detValX = Float(lista2[v]) - Float(lista3[v1]) #
-                #corregir esto
-                detValY = lista2[v+1] - lista3[v1+1]
-                if(detValX < 0.5 and detValY < 0.5):
-                    valPromX = np.mean(v[0], v1[0])
-                    valPromY = np.mean(v[1], v1[1])
-                    if(valPromX > limSupX or valPromX < limInfX and valPromY > limSupY or valPromY < limInfY):
-                        valuetoVector = (valPromX,valPromY)
-                        listVectoresf.append(valuetoVector)
-                    # print("Check here. COMPLETE")
-    return listVectoresf
-        
+    pos_aprox=((D.T*D).I*D.T*b.T)
+    #solucion LLS   
+    xest2= pos_aprox.item(0)    
+    yest2= pos_aprox.item(1) 
+    #combino dos soluciones LLS y min-max 
 
-#Validar dentro dimensiones -> Implementar funcion parOrdenado
-listVectores = []
-# coordperLine = [] #necesario??
-# limSupX = 4.7
-# limInfX = -4.7
-# limSupY = 3.5 
-# limInfY = -3.5
-# for secc in list_posSol:
-#     if(len(secc) != 0):
-#         coordperLine = str(secc).split(',')
-#         # coord = coordperLine
-#         for sol in sol1C:
-#             for r in sol2C:
-#                 solstr = str(sol).split(',')
-#                 rsstr = str(r).split(',')
-#                 detValX = solstr[0] - rsstr[0]
-#                 detValY = solstr[1] - rsstr[1]
-#                 if(detValX < 0.5 and detValY < 0.5):
-#                     # valPromX = (solstr[0] - rsstr[0])/2 #verificar si no funcion
-#                     valPromX = np.mean(solstr[0], rsstr[0])
-#                     valPromY = np.mean(solstr[1], rsstr[1])
-#                     if(valPromX > limSupX or valPromX < limInfX and valPromY > limSupY or valPromY < limInfY):
-#                         valuetoVector = (valPromX,valPromY)
-#                         listVectores.append(valuetoVector) #tiene sentido??
+    
+    P = matrix([[Xmin,Ymin],[Xmin,Ymax], [Xmax,Ymax], [Xmax,Ymin]])
+    R=matrix([[x1,y1],[x2,y2],[x3,y3]])
+    weights =[]
+    for element in P:
+        dif_distance = 0
+        for ele in R:
+            d = sqrt(ele.item(0)**2 +ele.item(1))**2 
+            #dif_distance = dif_distance +abs(sqrt((element.item(0) - ele.item(0))**2+ (element.item(1)- ele.item(1))**2)-d)
+            dif_distance = dif_distance +(sqrt((element.item(0) - ele.item(0))**2+ (element.item(1)- ele.item(1))**2)-d)**2
 
-listVectores.append(parOrdenado(sol1C,sol2C,sol3C))              
+        weights.append(1/dif_distance)
+  
+    xestmext = (matrix(weights)*P[:,0]).item(0)/sum(weights)
+    yestmext = (matrix(weights)*P[:,1]).item(0)/sum(weights)
+    
+    xaprox = (xest+xestmext)/2
+    yaprox = (yest+yestmext)/2
+    
+    posicion.append([mac,xaprox,yaprox, xest, yest, xest2, yest2,xestmext, yestmext])
 
-#----------------------------Distanciamiento----------------------------#
-#check other values 
-resultadoDistancia = []
-for i in range(len(listVectores)):
-    for j in range(len(listVectores)-1):
-        resultadoDistancia.append(listVectores[i],listVectores[j])
-
-
-#----------------------------Actualizar BD por posiciones----------------------------#
+#----------------------------Actualizar BD por posiciones actuales----------------------------#
 
 #agg DB result
 #how to identificate per user -> MAC?? (modify query)
 #table_name and attributes
-#relation with the other tables
+#relation with the other tables    
+if len(posicion) >0:
+    try:
+        conn = pymysql.connect(host="200.10.150.147", #se cambió la BD
+            user="test",
+            password="H8bmbfar!",
+            db = "wificrowdspy")
+
+        with conn.cursor() as cursor:
+            for element in posicion:
+                cursor.execute("SELECT MAC from info_device where mac=%s;", (element[0]))
+                result = cursor.fetchall()
+                if len(result) ==  0: 
+                    cursor.execute("INSERT INTO info_device (mac,pos_x,pos_y,date_modified) VALUES (%s,%s,%s,%s);", (element[0],element[1],element[2],limteSup))
+                else:
+                    cursor.execute("UPDATE info_device SET pos_x =%s, pos_y=%s, date_modified=%s where mac =%s;", (element[1],element[2],limteSup,element[0]))
+                conn.commit()
+    except(pymysql.err.OperationalError,pymysql.err.InternalError) as e:
+        print(e)
+
+    finally:
+        conn.close()
+
+
+#----------------------------Distanciamiento----------------------------#
+#check other values 
+#resultadoDistancia = []
+
+    
+         
+
+
+
+
+
+
