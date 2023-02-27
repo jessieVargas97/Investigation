@@ -47,7 +47,7 @@ Ap3_credentials = {
 }
 
 valorAP = []
-
+#start multitheading
 try:
 
     conn = pymysql.connect(host="200.10.150.147", #se cambió la BD
@@ -65,8 +65,10 @@ except(pymysql.err.OperationalError,pymysql.err.InternalError) as e:
 finally:
     conn.commit()
     conn.close()
-  
+
+
  #val pos change struct
+#
 for pos in valorAP:
     if(pos[0] == 101):
         x1 = pos[1]
@@ -82,7 +84,7 @@ mac_assoc = []
 
 dataDate = datetime.now()
 #time lapse check in realtime scenario
-limteSup = dataDate #- relativedelta(hours = 95)
+limteSup = dataDate - relativedelta(minutes = 1)
 limitSupF = limteSup.strftime("%Y-%m-%d %H:%M:%S")
 limteInf = limteSup - relativedelta(seconds=20) 
 limteInfF = limteInf.strftime("%Y-%m-%d %H:%M:%S")
@@ -207,11 +209,7 @@ for mac in mac_assoc:
     posicion.append([mac,xaprox,yaprox, xest, yest, xest2, yest2,xestmext, yestmext])
 
 #----------------------------Actualizar BD por posiciones actuales----------------------------#
-
-#agg DB result
-#how to identificate per user -> MAC?? (modify query)
-#table_name and attributes
-#relation with the other tables    
+   
 if len(posicion) >0:
     try:
         conn = pymysql.connect(host="200.10.150.147", #se cambió la BD
@@ -236,11 +234,8 @@ if len(posicion) >0:
 
 
 #----------------------------Distanciamiento----------------------------#
-#check other values 
-#resultadoDistancia = []
 
-    
-         
+
 
 
 
